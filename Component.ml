@@ -1,12 +1,12 @@
 (* ************************************************************************** *)
 (*                                                                            *)
 (*                                                        :::      ::::::::   *)
-(*   component.ml                                       :+:      :+:    :+:   *)
+(*   Component.ml                                       :+:      :+:    :+:   *)
 (*                                                    +:+ +:+         +:+     *)
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/03/15 17:35:56 by jaguillo          #+#    #+#             *)
-(*   Updated: 2017/05/15 15:19:13 by jaguillo         ###   ########.fr       *)
+(*   Updated: 2017/06/07 23:29:04 by jaguillo         ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -15,31 +15,23 @@ type ('a, 'e) tmpl' = 'a -> ('e -> unit) -> Dom.node Js.t * ('a -> unit)
 
 type root = Dom.node Js.t -> unit
 
-module Loop =
-struct
-	type ('a, 'r) loop = Loop of 'a | Done of 'r
-end
-
-(* val run : root -> 'a -> ('a, 'e) tmpl'
-		-> (('e Lwt.t -> unit) -> 'a -> 'e -> ('a, 'r) loop)
-		-> 'r Lwt.t *)
-let run root t view update =
+let run root (t, tasks) view update =
 	let stream, push = Lwt_stream.create () in
 	let push e = push (Some e) in
 	let node, redraw = view t push in
-	let update = update (fun v -> Lwt.on_success v push) in
-	let rec loop t =
+	let rec loop t tasks =
+		List.iter (fun t -> Lwt.on_success t push) tasks;
 		redraw t;
 		let%lwt event = Lwt_stream.next stream in
 		match update t event with
-		| Loop.Loop t	-> loop t
-		| Loop.Done r	-> Lwt.return r
+		| `Loop (t, tasks)	-> loop t tasks
+		| `Done r			-> Lwt.return r
 	in
 	root node;
-	loop t
+	loop t tasks
 
 let create_root parent_element root =
-	let root = ref root in
+	let root = ref (root :> Dom.node Js.t option) in
 	fun node ->
 		match !root with
 		| Some old when node == old	-> ()
@@ -67,7 +59,7 @@ let cached_update neq f update_f data =
 module T =
 struct
 
-	let e' _type childs : ('a, 'e) tmpl' =
+	let e' _type childs =
 		fun data event_push ->
 			let element = Dom_html.document##createElement (Js.string _type) in
 			let childs = List.map (fun c -> c data event_push element) childs in
@@ -88,12 +80,11 @@ struct
 	let comp' view update f event_f =
 		fun data event_push ->
 			let data = ref (data, f data) in
-			let rec update' = lazy (update (fun v -> Lwt.on_success v event_push'))
-			and event_push' e =
-				let e = (Lazy.force update') (snd !data) e in
-				event_push (event_f (fst !data) e)
+			let event_push e =
+				let data, comp_data = !data in
+				event_push (update comp_data e |> event_f data)
 			in
-			let node, redraw = view (snd !data) event_push' in
+			let node, redraw = view (snd !data) event_push in
 			node, fun d' ->
 				let d' = f d' in
 				if d' != (snd !data) then (
@@ -302,15 +293,14 @@ struct
 			cached_update (<>) f update (ref data)
 
 	let event _type handler =
-		fun data event_push parent_element ->
-			let data = ref data in
+		fun _ event_push parent_element ->
 			let handler = Dom_html.handler (fun e ->
-				event_push (handler !data e);
+				event_push (handler e);
 				Js._false
 			) in
 			Dom_html.addEventListener parent_element _type handler Js._false
 				|> ignore;
-			fun d' -> data := d'
+			fun _ -> ()
 
 	open Dom_html.Event
 
@@ -323,13 +313,13 @@ struct
 	let on_keypress h = event keypress h
 	let on_keydown h = event keydown h
 	let on_keyup h = event keyup h
-	let on_input h = event input (fun data e ->
+	let on_input h = event input (fun e ->
 			let value =
 				let input = Js.Opt.bind e##.target Dom_html.CoerceTo.input in
 				Js.Opt.case input (fun () -> assert false)
 					(fun input -> Js.to_string input##.value)
 			in
-			h data e value
+			h e value
 		)
 
 end
