@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/06/21 22:06:06 by jaguillo          #+#    #+#             *)
-(*   Updated: 2017/06/21 22:33:20 by jaguillo         ###   ########.fr       *)
+(*   Updated: 2017/07/05 22:58:05 by jaguillo         ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -34,4 +34,16 @@ val attr : string -> ('a -> string) -> ('a, 'e) attr
 (* val prop : string -> ('a -> string) -> ('a, 'e) tmpl *)
 (* val _class : string -> ('a -> bool) -> ('a, 'e) tmpl *)
 (* val style : string -> ('a -> string) -> ('a, 'e) tmpl *)
-(* val event *)
+
+open Dom_html
+
+val on_click : ('a -> mouseEvent Js.t -> 'e) -> ('a, 'e) attr
+val on_mousedown : ('a -> mouseEvent Js.t -> 'e) -> ('a, 'e) attr
+val on_mouseup : ('a -> mouseEvent Js.t -> 'e) -> ('a, 'e) attr
+val on_mouseover : ('a -> mouseEvent Js.t -> 'e) -> ('a, 'e) attr
+val on_mousemove : ('a -> mouseEvent Js.t -> 'e) -> ('a, 'e) attr
+val on_mouseout : ('a -> mouseEvent Js.t -> 'e) -> ('a, 'e) attr
+val on_keypress : ('a -> keyboardEvent Js.t -> 'e) -> ('a, 'e) attr
+val on_keydown : ('a -> keyboardEvent Js.t -> 'e) -> ('a, 'e) attr
+val on_keyup : ('a -> keyboardEvent Js.t -> 'e) -> ('a, 'e) attr
+val on_input : ('a -> event Js.t -> string -> 'e) -> ('a, 'e) attr
