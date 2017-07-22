@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/06/21 22:06:06 by jaguillo          #+#    #+#             *)
-(*   Updated: 2017/07/05 22:58:05 by jaguillo         ###   ########.fr       *)
+(*   Updated: 2017/07/22 21:07:03 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -19,11 +19,11 @@ val e : string -> ('a, 'e) attr list -> ('a, 'e) tmpl list -> ('a, 'e) tmpl
 
 val text : ('a -> string) -> ('a, 'e) tmpl
 
-(* val comp *)
-(* val t *)
 (* val switch *)
 
 val dummy : ('a, 'e) tmpl
+
+val comp : ('b, 'f) tmpl -> ('a -> 'b) -> ('f -> 'e) -> ('a, 'e) tmpl
 
 (* val lst : (('b -> unit) -> 'a -> unit)
 	-> ('f -> 'e)

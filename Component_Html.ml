@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/06/21 22:04:10 by jaguillo          #+#    #+#             *)
-(*   Updated: 2017/07/05 23:34:03 by jaguillo         ###   ########.fr       *)
+(*   Updated: 2017/07/22 21:07:02 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -99,6 +99,17 @@ let text f =
 		mount, deinit
 
 let dummy = fun _ _ -> (fun _ -> (fun _ -> ()), (fun () -> ())), (fun () -> ())
+
+let comp view get set =
+	fun data event_push ->
+		let event_push e = event_push (set e) in
+		let mount, deinit = view (get data) event_push in
+		let mount root =
+			let update, unmount = mount root in
+			let update data = update (get data) in
+			update, unmount
+		in
+		mount, deinit
 
 let attr name f =
 	let name = Js.string name in
