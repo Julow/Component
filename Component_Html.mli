@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/06/21 22:06:06 by jaguillo          #+#    #+#             *)
-(*   Updated: 2017/07/22 21:07:03 by juloo            ###   ########.fr       *)
+(*   Updated: 2017/08/19 17:41:39 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -29,6 +29,8 @@ val comp : ('b, 'f) tmpl -> ('a -> 'b) -> ('f -> 'e) -> ('a, 'e) tmpl
 	-> ('f -> 'e)
 	-> ('b, 'f) tmpl
 	-> ('a, 'e) tmpl *)
+
+val seq : (('b -> unit) -> 'a -> unit) -> ('b, 'e) tmpl -> ('a, 'e) tmpl
 
 val attr : string -> ('a -> string) -> ('a, 'e) attr
 (* val prop : string -> ('a -> string) -> ('a, 'e) tmpl *)
