@@ -6,14 +6,14 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/06/21 22:06:06 by jaguillo          #+#    #+#             *)
-(*   Updated: 2017/08/19 17:41:39 by juloo            ###   ########.fr       *)
+(*   Updated: 2017/08/20 21:42:19 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
 type ('a, 'e) tmpl
 type ('a, 'e) attr
 
-val root : ('a, 'e) tmpl -> #Dom.node Js.t -> ('a, 'e) Component.tmpl
+val root : ('a, 'e) tmpl -> #Dom.node Js.t -> ('a, 'e) Component.root
 
 val e : string -> ('a, 'e) attr list -> ('a, 'e) tmpl list -> ('a, 'e) tmpl
 

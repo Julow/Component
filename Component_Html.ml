@@ -6,18 +6,15 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/06/21 22:04:10 by jaguillo          #+#    #+#             *)
-(*   Updated: 2017/08/20 21:01:30 by juloo            ###   ########.fr       *)
+(*   Updated: 2017/08/20 21:35:15 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
-type action =
-	| Insert of int * Dom.node Js.t
-	| Replace of int * Dom.node Js.t
-	| Delete of int
+include ComponentTmpl.Tmpl (struct
+	type node = Dom.node Js.t
+end)
 
-type ('a, 'e) tmpl = 'a -> ('e -> unit) -> (
-		(action -> unit) -> ('a -> unit) * (unit -> unit)
-	) * (unit -> unit)
+open ComponentTmpl_T
 
 type ('a, 'e) attr = 'a -> ('e -> unit) -> Dom_html.element Js.t -> 'a -> unit
 
@@ -41,14 +38,8 @@ let html_root element offset =
 	| Delete i			-> Dom.removeChild element (get_child i); ~-1
 
 let root tmpl root_element =
-	let root' action = ignore @@ html_root root_element 0 action in
-	fun data event_push ->
-		let (mount_tmpl, deinit_tmpl) = tmpl data event_push in
-		let mount () =
-			let update_tmpl, unmount_tmpl = mount_tmpl root' in
-			update_tmpl, unmount_tmpl
-		in
-		mount, deinit_tmpl
+	let parent action = ignore @@ html_root root_element 0 action in
+	root parent tmpl
 
 let e _type attrs childs =
 	let attrs = Array.of_list attrs in
@@ -59,7 +50,7 @@ let e _type attrs childs =
 		let child_lengths = Array.map (fun _ -> 0) childs in
 		let offset = ref 0 in
 		let childs =
-			let root i action =
+			let parent i action =
 				let offset' = !offset in
 				let inc = html_root element offset' action in
 				let length = child_lengths.(i) + inc in
@@ -68,19 +59,19 @@ let e _type attrs childs =
 			in
 			let init i tmpl =
 				let mount, deinit = tmpl data event_push in
-				let update, _ = mount (root i) in
+				let update, _ = mount (parent i) in
 				update, deinit
 			in
 			Array.mapi init childs
 		in
-		let mount root =
+		let mount parent =
 			let update data =
 				offset := 0;
 				Array.iter (fun (update, _) -> update data) childs;
 				Array.iter (fun attr -> attr data) attrs
 			in
-			let unmount () = root (Delete 0) in
-			root (Insert (0, (element :> Dom.node Js.t)));
+			let unmount () = parent (Delete 0) in
+			parent (Insert (0, (element :> Dom.node Js.t)));
 			update, unmount
 		in
 		let deinit () = Array.iter (fun (_, deinit) -> deinit ()) childs in
@@ -90,26 +81,13 @@ let text f =
 	fun data event_push ->
 		let text = f data in
 		let element = Dom_html.document##createTextNode (Js.string text) in
-		let mount root =
-			root (Insert (0, (element :> Dom.node Js.t)));
+		let mount parent =
+			parent (Insert (0, (element :> Dom.node Js.t)));
 			let update data = element##.data := Js.string data in
-			let unmount () = root (Delete 0) in
+			let unmount () = parent (Delete 0) in
 			cache_last f text update, unmount
 		in
 		let deinit () = () in
-		mount, deinit
-
-let dummy = fun _ _ -> (fun _ -> (fun _ -> ()), (fun () -> ())), (fun () -> ())
-
-let comp view get set =
-	fun data event_push ->
-		let event_push e = event_push (set e) in
-		let mount, deinit = view (get data) event_push in
-		let mount root =
-			let update, unmount = mount root in
-			let update data = update (get data) in
-			update, unmount
-		in
 		mount, deinit
 
 let attr name f =
@@ -119,84 +97,6 @@ let attr name f =
 		let value = f data in
 		set_attr value;
 		cache_last f value set_attr
-
-type 'a seq_child = {
-	mutable length	: int;
-	update			: 'a -> unit;
-	unmount			: unit -> unit;
-	deinit			: unit -> unit
-}
-
-let seq f (tmpl : ('a, 'e) tmpl) =
-	fun data event_push ->
-		let mount root =
-			let offset = ref 0 in
-			let index = ref 0 in
-			let inserted = ref 0 in
-			let childs = ref [||] in
-			let pushed = ref [] in
-
-			let root =
-				let root d a = inserted := !inserted + d; root a in
-				function
-				| Insert (i, n)		-> root ~+1 (Insert (i + !offset, n))
-				| Delete i			-> root ~-1 (Delete (i + !offset))
-				| Replace (i, n)	-> root ~+0 (Replace (i + !offset, n))
-			in
-
-			let create_child data =
-				let mount, deinit = tmpl data event_push in
-				let update, unmount = mount root in
-				let c = { length = 0; update; unmount; deinit } in
-				c
-			in
-
-			let push data =
-				let i = !index in
-				inserted := 0;
-				let child =
-					try
-						let c = !childs.(!index) in
-						c.update data;
-						c
-					with Invalid_argument _ ->
-						let c = create_child data in
-						pushed := c :: !pushed;
-						c
-				in
-				let l = child.length + !inserted in
-				child.length <- l;
-				offset := !offset + l;
-				index := i + 1
-			in
-
-			let remove_tail from =
-				for i = from to Array.length !childs - 1 do
-					let c = !childs.(i) in
-					c.unmount ();
-					c.deinit ()
-				done;
-				childs := Array.sub !childs 0 from
-			in
-
-			let update data =
-				offset := 0;
-				index := 0;
-				f push data;
-				childs := Array.(List.rev !pushed |> of_list |> append !childs);
-				pushed := [];
-				remove_tail !index;
-			in
-
-			let unmount () =
-				offset := 0;
-				remove_tail 0
-			in
-
-			update data;
-			update, unmount
-		in
-		mount, (fun () -> ())
 
 let event _type handler =
 	fun data event_push (element : Dom_html.element Js.t) ->
