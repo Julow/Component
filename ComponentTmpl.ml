@@ -6,45 +6,28 @@
 (*   By: juloo </var/mail/juloo>                    +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/08/20 21:08:52 by juloo             #+#    #+#             *)
-(*   Updated: 2017/10/05 22:50:07 by juloo            ###   ########.fr       *)
+(*   Updated: 2017/10/06 00:15:12 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
-module Tmpl (P : sig
-	type node
-end) =
-struct
+open ComponentTmpl_T
 
-	type ('a, 'e) tmpl = ('a, 'e, P.node) ComponentTmpl_T.t
+let dummy : ('a, 'e, 'n) t =
+	fun _ _ -> (fun _ -> (fun _ -> ()), fun () -> ()), fun () -> ()
 
-	let root parent tmpl =
-		fun data event_push ->
-			let mount, deinit = tmpl data event_push in
+let comp (tmpl : ('b, 'f, 'n) t) get set : ('a, 'e, 'n) t =
+	fun data event_push ->
+		let event_push e = event_push (set e) in
+		let mount, deinit = tmpl (get data) event_push in
+		let mount parent =
 			let update, unmount = mount parent in
-			let destroy () =
-				unmount ();
-				deinit ()
-			in
-			update, destroy
+			let update data = update (get data) in
+			update, unmount
+		in
+		mount, deinit
 
 
-	let dummy _ _ = (fun _ -> (fun _ -> ()), fun () -> ()), fun () -> ()
+let seq = ComponentTmpl_seq.seq
 
-	let comp view get set =
-		fun data event_push ->
-			let event_push e = event_push (set e) in
-			let mount, deinit = view (get data) event_push in
-			let mount parent =
-				let update, unmount = mount parent in
-				let update data = update (get data) in
-				update, unmount
-			in
-			mount, deinit
-
-
-	let seq = ComponentTmpl_seq.seq
-
-	include ComponentTmpl_switch.Case
-	let switch = ComponentTmpl_switch.switch
-
-end
+include ComponentTmpl_switch.Case
+let switch = ComponentTmpl_switch.switch

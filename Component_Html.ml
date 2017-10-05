@@ -6,17 +6,16 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/06/21 22:04:10 by jaguillo          #+#    #+#             *)
-(*   Updated: 2017/08/20 21:35:15 by juloo            ###   ########.fr       *)
+(*   Updated: 2017/10/06 00:18:16 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
-include ComponentTmpl.Tmpl (struct
-	type node = Dom.node Js.t
-end)
-
 open ComponentTmpl_T
 
+type ('a, 'e) tmpl = ('a, 'e, Dom.node Js.t) t
 type ('a, 'e) attr = 'a -> ('e -> unit) -> Dom_html.element Js.t -> 'a -> unit
+
+include ComponentTmpl
 
 let cache_last ?(eq=(=)) f init update =
 	let last = ref init in
@@ -41,7 +40,7 @@ let root tmpl root_element =
 	let parent action = ignore @@ html_root root_element 0 action in
 	root parent tmpl
 
-let e _type attrs childs =
+let e _type (attrs : ('a, 'e) attr list) (childs : ('a, 'e) tmpl list) : ('a, 'e) tmpl =
 	let attrs = Array.of_list attrs in
 	let childs = Array.of_list childs in
 	fun data event_push ->
@@ -77,7 +76,7 @@ let e _type attrs childs =
 		let deinit () = Array.iter (fun (_, deinit) -> deinit ()) childs in
 		mount, deinit
 
-let text f =
+let text f : ('a, 'e) tmpl =
 	fun data event_push ->
 		let text = f data in
 		let element = Dom_html.document##createTextNode (Js.string text) in
@@ -90,7 +89,7 @@ let text f =
 		let deinit () = () in
 		mount, deinit
 
-let attr name f =
+let attr name f : ('a, 'e) attr =
 	let name = Js.string name in
 	fun data _ element ->
 		let set_attr value = element##setAttribute name (Js.string value) in
@@ -98,16 +97,15 @@ let attr name f =
 		set_attr value;
 		cache_last f value set_attr
 
-let event _type handler =
-	fun data event_push (element : Dom_html.element Js.t) ->
-		let data = ref data in
+let event _type handler : ('a, 'e) attr =
+	fun _ event_push (element : Dom_html.element Js.t) ->
 		let handler = Dom_html.handler (fun e ->
-			event_push (handler !data e);
+			event_push (handler e);
 			Js._false
 		) in
 		let element = (element :> Dom_html.eventTarget Js.t) in
 		Dom_html.addEventListener element _type handler Js._false |> ignore;
-		fun d' -> data := d'
+		fun _ -> ()
 
 open Dom_html.Event
 
@@ -125,5 +123,5 @@ let on_input handler =
 	fun data event_push element ->
 		let element' = Dom_html.CoerceTo.input element in
 		let element' = Js.Opt.case element' dead (fun e -> e) in
-		let handler data e = handler data e (Js.to_string element'##.value) in
+		let handler e = handler e (Js.to_string element'##.value) in
 		event input handler data event_push element

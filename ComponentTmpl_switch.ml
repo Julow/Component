@@ -6,16 +6,16 @@
 (*   By: juloo </var/mail/juloo>                    +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/08/20 21:18:18 by juloo             #+#    #+#             *)
-(*   Updated: 2017/10/05 22:56:41 by juloo            ###   ########.fr       *)
+(*   Updated: 2017/10/06 00:13:07 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
 open ComponentTmpl_T
 
-type switch = unit
-
 module Case =
 struct
+
+	type switch = unit
 
 	type ('e, 'n) case = {
 		case : 'a. ('a, 'e, 'n) t -> 'a -> switch
@@ -25,7 +25,7 @@ end
 
 open Case
 
-let switch f =
+let switch f : ('a, 'e, 'n) t =
 
 	fun data event_push ->
 

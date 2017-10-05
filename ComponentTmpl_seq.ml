@@ -6,7 +6,7 @@
 (*   By: juloo </var/mail/juloo>                    +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/08/20 21:18:18 by juloo             #+#    #+#             *)
-(*   Updated: 2017/08/20 21:35:36 by juloo            ###   ########.fr       *)
+(*   Updated: 2017/10/06 00:07:49 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -19,7 +19,7 @@ type 'a seq_child = {
 	deinit			: unit -> unit
 }
 
-let seq f tmpl =
+let seq f (tmpl : ('b, 'e, 'n) t) : ('a, 'e, 'n) t =
 	fun data event_push ->
 		let mount parent =
 			let offset = ref 0 in
