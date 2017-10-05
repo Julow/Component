@@ -6,7 +6,7 @@
 (*   By: juloo </var/mail/juloo>                    +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/08/20 21:08:52 by juloo             #+#    #+#             *)
-(*   Updated: 2017/08/20 21:40:10 by juloo            ###   ########.fr       *)
+(*   Updated: 2017/10/05 22:50:07 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -43,5 +43,8 @@ struct
 
 
 	let seq = ComponentTmpl_seq.seq
+
+	include ComponentTmpl_switch.Case
+	let switch = ComponentTmpl_switch.switch
 
 end
