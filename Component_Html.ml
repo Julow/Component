@@ -6,75 +6,53 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/06/21 22:04:10 by jaguillo          #+#    #+#             *)
-(*   Updated: 2017/10/06 00:18:16 by juloo            ###   ########.fr       *)
+(*   Updated: 2017/11/05 20:06:44 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
-open ComponentTmpl_T
+module Component_Dom_html = Component_Dom.Make (struct
 
-type ('a, 'e) tmpl = ('a, 'e, Dom.node Js.t) t
-type ('a, 'e) attr = 'a -> ('e -> unit) -> Dom_html.element Js.t -> 'a -> unit
+	let get_child_opt element i = element##.childNodes##item i
+	let get_child element i = Js.Opt.get (get_child_opt element i)
+			(fun () -> failwith "child out of bounds")
+
+	type element = Dom.node Js.t
+	type element' = Dom_html.element Js.t
+	let coerce element = (element :> element)
+
+	let insert parent i node = Dom.insertBefore parent node (get_child_opt parent i)
+	let replace parent i node = Dom.replaceChild parent node (get_child parent i)
+	let delete parent i = Dom.removeChild parent (get_child parent i)
+
+end)
+
+open ComponentTmpl_T
+open Component_Dom_html
 
 include ComponentTmpl
+include Component_Dom_html.T
 
-let cache_last ?(eq=(=)) f init update =
-	let last = ref init in
-	fun data ->
-		let data = f data in
-		if not @@ eq !last data then (
-			update data;
-			last := data
-		)
+module Internal =
+struct
 
-let dead _ = failwith "dead"
+	let cache_last ?(eq=(=)) f init update =
+		let last = ref init in
+		fun data ->
+			let data = f data in
+			if not @@ eq !last data then (
+				update data;
+				last := data
+			)
 
-let html_root element offset =
-	let get_child_opt i = element##.childNodes##item (i + offset) in
-	let get_child i = Js.Opt.get (get_child_opt i) dead in
-	function
-	| Insert (i, node)	-> Dom.insertBefore element node (get_child_opt i); ~+1
-	| Replace (i, node)	-> Dom.replaceChild element node (get_child i); ~+0
-	| Delete i			-> Dom.removeChild element (get_child i); ~-1
+	let e _type =
+		let _type = Js.string _type in
+		e (fun () -> Dom_html.document##createElement _type)
 
-let root tmpl root_element =
-	let parent action = ignore @@ html_root root_element 0 action in
-	root parent tmpl
+end
 
-let e _type (attrs : ('a, 'e) attr list) (childs : ('a, 'e) tmpl list) : ('a, 'e) tmpl =
-	let attrs = Array.of_list attrs in
-	let childs = Array.of_list childs in
-	fun data event_push ->
-		let element = Dom_html.document##createElement (Js.string _type) in
-		let attrs = Array.map (fun a -> a data event_push element) attrs in
-		let child_lengths = Array.map (fun _ -> 0) childs in
-		let offset = ref 0 in
-		let childs =
-			let parent i action =
-				let offset' = !offset in
-				let inc = html_root element offset' action in
-				let length = child_lengths.(i) + inc in
-				offset := offset' + length;
-				child_lengths.(i) <- length
-			in
-			let init i tmpl =
-				let mount, deinit = tmpl data event_push in
-				let update, _ = mount (parent i) in
-				update, deinit
-			in
-			Array.mapi init childs
-		in
-		let mount parent =
-			let update data =
-				offset := 0;
-				Array.iter (fun (update, _) -> update data) childs;
-				Array.iter (fun attr -> attr data) attrs
-			in
-			let unmount () = parent (Delete 0) in
-			parent (Insert (0, (element :> Dom.node Js.t)));
-			update, unmount
-		in
-		let deinit () = Array.iter (fun (_, deinit) -> deinit ()) childs in
-		mount, deinit
+open Internal
+
+let root = root
 
 let text f : ('a, 'e) tmpl =
 	fun data event_push ->
@@ -88,6 +66,8 @@ let text f : ('a, 'e) tmpl =
 		in
 		let deinit () = () in
 		mount, deinit
+
+let div a c = e "div" a c
 
 let attr name f : ('a, 'e) attr =
 	let name = Js.string name in
@@ -122,6 +102,7 @@ let on_keyup h = event keyup h
 let on_input handler =
 	fun data event_push element ->
 		let element' = Dom_html.CoerceTo.input element in
-		let element' = Js.Opt.case element' dead (fun e -> e) in
+		let element' = Js.Opt.case element'
+			(fun () -> failwith "Not an input") (fun e -> e) in
 		let handler e = handler e (Js.to_string element'##.value) in
 		event input handler data event_push element
