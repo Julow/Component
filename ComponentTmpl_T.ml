@@ -6,7 +6,7 @@
 (*   By: juloo </var/mail/juloo>                    +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/08/20 21:30:54 by juloo             #+#    #+#             *)
-(*   Updated: 2017/10/05 23:56:50 by juloo            ###   ########.fr       *)
+(*   Updated: 2017/11/03 00:20:54 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -15,9 +15,11 @@ type 'n action =
 	| Replace of int * 'n
 	| Delete of int
 
-type ('a, 'e, 'n) t = 'a -> ('e -> unit) -> (
-		('n action -> unit) -> ('a -> unit) * (unit -> unit)
-	) * (unit -> unit)
+type 'a mounted = ('a -> unit) * (unit -> unit)
+type ('a, 'n) mount = ('n action -> unit) -> 'a mounted
+type ('a, 'n) unmounted = ('a, 'n) mount * (unit -> unit)
+
+type ('a, 'e, 'n) t = 'a -> ('e -> unit) -> ('a, 'n) unmounted
 
 let root parent (tmpl : ('a, 'e, 'n) t) : ('a, 'e) Component.root =
 	fun data event_push ->

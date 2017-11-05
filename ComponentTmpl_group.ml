@@ -1,50 +1,30 @@
 (* ************************************************************************** *)
 (*                                                                            *)
 (*                                                        :::      ::::::::   *)
-(*   ComponentTmpl_seq.ml                               :+:      :+:    :+:   *)
+(*   ComponentTmpl_group.ml                             :+:      :+:    :+:   *)
 (*                                                    +:+ +:+         +:+     *)
 (*   By: juloo </var/mail/juloo>                    +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
-(*   Created: 2017/08/20 21:18:18 by juloo             #+#    #+#             *)
-(*   Updated: 2017/11/04 17:48:09 by juloo            ###   ########.fr       *)
+(*   Created: 2017/11/05 19:58:40 by juloo             #+#    #+#             *)
+(*   Updated: 2017/11/05 19:58:53 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
 open ComponentTmpl_T
-open Utils
 
-let seq f (tmpl : ('b, 'e, 'n) t) : ('a, 'e, 'n) t =
+let group (childs : ('b, 'e, 'n) t list) : ('b, 'e, 'n) t =
+	let childs = Array.of_list childs in
 	fun data event_push ->
-
-		let tmpl data = tmpl data event_push in
-
-		let childs = ref [] in
-		f (fun data -> childs := tmpl data :: !childs);
-		let childs = array_rev_of_list !childs in
-
+		let childs = Array.map (fun c -> c data event_push) childs in
 		let mount_childs, deinit_childs = ChildList.create childs in
 		let mount parent =
 			let childs, unmount_childs = mount_childs parent in
-
 			let update data =
 				ChildList.begin_iter childs;
-				let append = ref [] in
-				f (fun data ->
-					if ChildList.iter childs then
-						ChildList.update childs data
-					else
-						append := tmpl data :: !append
-				);
-				if !append <> [] then
-					ChildList.append childs (array_rev_of_list !append)
-				else if ChildList.iter childs then
-					ChildList.truncate childs
-					|> Array.iter (fun (_, deinit) -> deinit ())
-				else
-					()
-
+				while ChildList.iter childs do
+					ChildList.update childs data
+				done
 			in
 			update, unmount_childs
-
 		in
 		mount, deinit_childs

@@ -6,7 +6,7 @@
 (*   By: juloo </var/mail/juloo>                    +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/08/20 21:08:52 by juloo             #+#    #+#             *)
-(*   Updated: 2017/10/06 00:15:12 by juloo            ###   ########.fr       *)
+(*   Updated: 2017/11/05 19:57:15 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -26,8 +26,8 @@ let comp (tmpl : ('b, 'f, 'n) t) get set : ('a, 'e, 'n) t =
 		in
 		mount, deinit
 
-
 let seq = ComponentTmpl_seq.seq
+let group = ComponentTmpl_group.group
 
 include ComponentTmpl_switch.Case
 let switch = ComponentTmpl_switch.switch
