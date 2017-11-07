@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/06/21 22:04:10 by jaguillo          #+#    #+#             *)
-(*   Updated: 2017/11/05 20:06:44 by juloo            ###   ########.fr       *)
+(*   Updated: 2017/11/07 23:21:05 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -67,7 +67,44 @@ let text f : ('a, 'e) tmpl =
 		let deinit () = () in
 		mount, deinit
 
+let _text text : ('a, 'e) tmpl =
+	let text = Js.string text in
+	fun _ _ ->
+		let element = Dom_html.document##createTextNode text in
+		let mount parent =
+			parent (Insert (0, (element :> Dom.node Js.t)));
+			let update _ = ()
+			and unmount () = parent (Delete 0) in
+			update, unmount
+		and deinit () = () in
+		mount, deinit
+
 let div a c = e "div" a c
+
+let span a c = e "span" a c
+let b a c = e "b" a c
+let br = fun a b -> e "br" [] [] a b
+
+let canvas width height f : ('a, 'e) tmpl =
+	fun data event_push ->
+		let canvas = Dom_html.createCanvas Dom_html.document in
+		canvas##.width := width;
+		canvas##.height := height;
+		let context = canvas##getContext Dom_html._2d_ in
+		let last_data = ref data in
+		let mount parent =
+			parent (Insert (0, (canvas :> Dom.node Js.t)));
+			f context !last_data;
+			let update data =
+				if data <> !last_data then (
+					last_data := data;
+					context##clearRect 0. 0. (float width) (float height);
+					f context data
+				)
+			and unmount () = parent (Delete 0) in
+			update, unmount
+		and deinit () = () in
+		mount, deinit
 
 let attr name f : ('a, 'e) attr =
 	let name = Js.string name in
@@ -76,6 +113,12 @@ let attr name f : ('a, 'e) attr =
 		let value = f data in
 		set_attr value;
 		cache_last f value set_attr
+
+let _class clss : ('a, 'e) attr =
+	let clss = Js.string clss in
+	fun _ _ element ->
+		element##.className := clss;
+		fun _ -> ()
 
 let event _type handler : ('a, 'e) attr =
 	fun _ event_push (element : Dom_html.element Js.t) ->

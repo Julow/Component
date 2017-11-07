@@ -6,7 +6,7 @@
 (*   By: juloo </var/mail/juloo>                    +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2017/08/20 21:18:18 by juloo             #+#    #+#             *)
-(*   Updated: 2017/11/04 17:48:09 by juloo            ###   ########.fr       *)
+(*   Updated: 2017/11/05 21:30:09 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -19,7 +19,7 @@ let seq f (tmpl : ('b, 'e, 'n) t) : ('a, 'e, 'n) t =
 		let tmpl data = tmpl data event_push in
 
 		let childs = ref [] in
-		f (fun data -> childs := tmpl data :: !childs);
+		f (fun data -> childs := tmpl data :: !childs) data;
 		let childs = array_rev_of_list !childs in
 
 		let mount_childs, deinit_childs = ChildList.create childs in
@@ -34,7 +34,7 @@ let seq f (tmpl : ('b, 'e, 'n) t) : ('a, 'e, 'n) t =
 						ChildList.update childs data
 					else
 						append := tmpl data :: !append
-				);
+				) data;
 				if !append <> [] then
 					ChildList.append childs (array_rev_of_list !append)
 				else if ChildList.iter childs then
